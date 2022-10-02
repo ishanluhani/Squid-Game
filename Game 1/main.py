@@ -69,31 +69,36 @@ class AI(pygame.sprite.Sprite):
         self.rect.centery = PLAYER_POS[id][1]
         self.speedx = 0
         self.speed = 0
+        self.die_countdown = 0
+        self.dies = False
 
     def unmove(self):
-        if self.if_die():
-            self.speedx = self.speed
-        else:
-            self.speed = random.randint(*PLAYERS_SPEED)
+
+        self.speed = random.randint(*PLAYERS_SPEED)
 
     def move(self):
         self.speedx = self.speed
 
     def if_die(self):
-        global PLAYERS_LEFT
-        die_chance = random.randint(1, 456)
+        die_chance = random.randint(1, PLAYERS_LEFT//2)
         return die_chance == 1
 
     def if_red_light(self):
-        dies = self.if_die()
-        if dies:
-            self.move()
-            self.update()
+        global PLAYERS_LEFT
+        if not self.if_die():
+            self.speedx = 0
         if self.speedx != 0:
+            PLAYERS_LEFT -= 1
             self.kill()
 
     def update(self):
+        if self.rect.x > WIDTH-QUALIFY_AREA/1.5:
+            self.kill()
         self.rect.x += self.speedx
+        if doll.red_light:
+            self.unmove()
+        else:
+            self.move()
 
 
 class Doll(pygame.sprite.Sprite):
@@ -142,18 +147,18 @@ class Doll(pygame.sprite.Sprite):
         if self.red_light:
             for i in player_sprites:
                 i.if_red_light()
+            player.if_red_light()
 
 all_sprites = pygame.sprite.Group()
 player_sprites = []
 n = 1
 for i in range(PLAYERS_LEFT):
-    if i == PLAYER_NO:
-        player = Player(PLAYER_NO)
-        all_sprites.add(player)
-    else:
-        player = AI(i+1)
-        all_sprites.add(player)
+    player = AI(i+1)
+    all_sprites.add(player)
     player_sprites.append(player)
+
+player = Player(PLAYER_NO)
+all_sprites.add(player)
 
 doll = Doll()
 all_sprites.add(doll)
@@ -166,23 +171,22 @@ def time_min():
 running = True
 while running:
     clock.tick(FPS)
-    for p in player_sprites:
-        p.speedx = 0
+    player.speedx = 0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
     mouse_click = pygame.mouse.get_pressed(3)
     if mouse_click[0]:
-        for p in player_sprites:
-            p.move()
+        player.move()
     else:
-        for p in player_sprites:
-            p.unmove()
+        player.unmove()
 
     all_sprites.update()
     screen.blit(background_image, (0, 0))
     screen.blit(background2_image, (WIDTH-QUALIFY_AREA, 0))
     timer = 60-(pygame.time.get_ticks()-start_ticks)//1000
+    if timer == 0:
+        quit()
     print(timer)
     screen.blit(font.render(f'{timer}', True, RED), (WIDTH-QUALIFY_AREA+10, 25))
     all_sprites.draw(screen)
