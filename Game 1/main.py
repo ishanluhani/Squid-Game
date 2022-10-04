@@ -71,7 +71,6 @@ class AI(pygame.sprite.Sprite):
         self.speed = 0
         self.die_countdown = 0
         self.dies = False
-6
     def unmove(self):
 
         self.speed = random.randint(*PLAYERS_SPEED)
@@ -104,7 +103,7 @@ class AI(pygame.sprite.Sprite):
 class Doll(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.speed = 4
+        self.speed = 6
         self.DOLL_ANIMATIONS = [*['doll_animations/0.png'] * self.speed, *['doll_animations/1.png'] * self.speed,
                                 *['doll_animations/2.png'] * self.speed, *['doll_animations/3.png'] * self.speed,
                                 *['doll_animations/4.png'] * self.speed, *['doll_animations/5.png'] * self.speed]
@@ -162,6 +161,7 @@ all_sprites.add(player)
 
 doll = Doll()
 all_sprites.add(doll)
+move = False
 
 def time_min():
     global timer
@@ -175,8 +175,11 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                move = True
     mouse_click = pygame.mouse.get_pressed(3)
-    if mouse_click[0]:
+    if mouse_click[0] or move:
         player.move()
     else:
         player.unmove()
@@ -184,7 +187,7 @@ while running:
     all_sprites.update()
     screen.blit(background_image, (0, 0))
     screen.blit(background2_image, (WIDTH-QUALIFY_AREA, 0))
-    timer = 60-(pygame.time.get_ticks()-start_ticks)//1000
+    timer = 30-(pygame.time.get_ticks()-start_ticks)//1000
     if timer == 0:
         quit()
     print(timer)
