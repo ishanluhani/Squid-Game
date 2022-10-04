@@ -71,7 +71,7 @@ class AI(pygame.sprite.Sprite):
         self.speed = 0
         self.die_countdown = 0
         self.dies = False
-
+6
     def unmove(self):
 
         self.speed = random.randint(*PLAYERS_SPEED)
