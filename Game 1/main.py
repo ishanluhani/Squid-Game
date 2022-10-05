@@ -15,6 +15,7 @@ QUALIFY_AREA = 200
 PLAYERS_LEFT = 32
 PLAYER_POS = {1: (27, 133), 2: (30, 176), 3: (35, 229), 4: (41, 281), 5: (41, 336), 6: (41, 397), 7: (43, 461), 8: (35, 519), 9: (39, 571), 10: (40, 571), 11: (99, 574), 12: (98, 492), 13: (92, 440), 14: (101, 536), 15: (95, 406), 16: (87, 347), 17: (105, 276), 18: (88, 219), 19: (99, 162), 20: (94, 116), 21: (151, 570), 22: (141, 506), 23: (144, 463), 24: (141, 374), 25: (149, 340), 26: (157, 435), 27: (155, 251), 28: (153, 293), 29: (155, 161), 30: (159, 207), 31: (160, 208), 32: (154, 128)}
 PLAYER_NO = random.randint(1, PLAYERS_LEFT)
+PLAYER_SIZE = (25, 20)
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -32,19 +33,26 @@ background_image = pygame.transform.scale(pygame.image.load(BACKGROUND_PATH), (W
 background2_image = pygame.transform.scale(pygame.image.load(BACKGROUND2_PATH), (QUALIFY_AREA, HEIGHT))
 font = pygame.font.Font('freesansbold.ttf', 32)
 Music = pygame.mixer.Sound('Red Light Green Light.mp3')
+explosion_duration = 5
+EXPLOSION_FRAMES = [*['Explosions_kenney/0.png'] * explosion_duration, *['Explosions_kenney/1.png'] * explosion_duration, *['Explosions_kenney/2.png'] * explosion_duration, *['Explosions_kenney/3.png'] * explosion_duration, *['Explosions_kenney/4.png'] * explosion_duration, *['Explosions_kenney/5.png'] * explosion_duration, *['Explosions_kenney/6.png'] * explosion_duration, *['Explosions_kenney/7.png'] * explosion_duration, *['Explosions_kenney/8.png'] * explosion_duration]
 timer = 60
 start_ticks = pygame.time.get_ticks()
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, id):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((25, 20))
+        self.image = pygame.Surface(PLAYER_SIZE)
         self.image.fill(GREEN)
         self.rect = self.image.get_rect()
         self.rect.centerx = PLAYER_POS[id][0]
         self.rect.centery = PLAYER_POS[id][1]
         self.speedx = 0
         self.speed = 0
+        self.tag_img = pygame.transform.scale(pygame.image.load('you.png'), (12, 8))
+        self.tag_img.set_colorkey((255, 255, 255))
+        self.tag_rect = self.tag_img.get_rect()
+        self.kill_animation = False
+        self.nuke_frame = 0
 
     def unmove(self):
         self.speed = random.randint(*PLAYERS_SPEED)
@@ -53,11 +61,21 @@ class Player(pygame.sprite.Sprite):
         self.speedx = self.speed
 
     def update(self):
-        self.rect.x += self.speedx
+        if self.kill_animation:
+            if self.tag_rect.y < self.rect.centery:
+                self.tag_rect.y += 3
+            else:
+                self.image = pygame.transform.scale(pygame.image.load(EXPLOSION_FRAMES[self.nuke_frame]), PLAYER_SIZE)
+                self.nuke_frame += 1
+        else:
+            self.tag_rect.y = self.rect.y - 15
+            self.tag_rect.centerx = self.rect.x + (self.rect.w // 2)
+            self.rect.x += self.speedx
+        screen.blit(self.tag_img, self.tag_rect)
 
     def if_red_light(self):
         if self.speedx != 0:
-            self.kill()
+            self.kill_animation = True
 
 class AI(pygame.sprite.Sprite):
     def __init__(self, id):
@@ -71,6 +89,9 @@ class AI(pygame.sprite.Sprite):
         self.speed = 0
         self.die_countdown = 0
         self.dies = False
+        self.kill_animation = False
+        self.nuke_frame = 0
+
     def unmove(self):
 
         self.speed = random.randint(*PLAYERS_SPEED)
@@ -84,20 +105,20 @@ class AI(pygame.sprite.Sprite):
 
     def if_red_light(self):
         global PLAYERS_LEFT
-        if not self.if_die():
-            self.speedx = 0
-        if self.speedx != 0:
-            PLAYERS_LEFT -= 1
-            self.kill()
+        if self.if_die():
+            self.kill_animation = True
 
     def update(self):
-        if self.rect.x > WIDTH-QUALIFY_AREA/1.5:
-            self.kill()
-        self.rect.x += self.speedx
-        if doll.red_light:
-            self.unmove()
+        if self.kill_animation:
+            self.image = pygame.transform.scale(pygame.image.load(EXPLOSION_FRAMES[self.nuke_frame]), PLAYER_SIZE)
+            self.nuke_frame += 1
         else:
-            self.move()
+            if self.rect.x > WIDTH-QUALIFY_AREA/1.5:
+                self.kill()
+            if doll.red_light:
+                self.unmove()
+            else:
+                self.move()
 
 
 class Doll(pygame.sprite.Sprite):
@@ -125,7 +146,7 @@ class Doll(pygame.sprite.Sprite):
                 self.animation = False
                 self.red_light = not self.red_light
                 self.GREEN_LIGHT_TO_RED_TIME = random.randint(60, 170)
-                Music.play()
+                # Music.play()
             return pygame.image.load(self.DOLL_ANIMATIONS[self.doll_frame_no])
         if not self.red_light:
             self.doll_frame_no -= 1
@@ -184,9 +205,9 @@ while running:
     else:
         player.unmove()
 
-    all_sprites.update()
     screen.blit(background_image, (0, 0))
     screen.blit(background2_image, (WIDTH-QUALIFY_AREA, 0))
+    all_sprites.update()
     timer = 30-(pygame.time.get_ticks()-start_ticks)//1000
     if timer == 0:
         quit()
